@@ -4,7 +4,7 @@
     {
         public string Alias { get; set; }
 
-        public string Cmd { get; set; }
+        public string CommandName { get; set; }
     }
 
     internal class AliasTable

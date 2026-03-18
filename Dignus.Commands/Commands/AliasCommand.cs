@@ -18,7 +18,7 @@ namespace Dignus.Commands.Commands
                 var sb = new StringBuilder();
                 foreach (var item in aliasTable.GetDatas())
                 {
-                    sb.AppendLine($"{item.Alias} : {item.Cmd}");
+                    sb.AppendLine($"{item.Alias} : {item.CommandName}");
                 }
                 sender.Post(new CommandResponseMessage()
                 {
@@ -44,7 +44,7 @@ namespace Dignus.Commands.Commands
                 aliasTable.AddAlias(new AliasModel()
                 {
                     Alias = aliasCmd,
-                    Cmd = cmd
+                    CommandName = cmd
                 });
 
                 var datas = aliasTable.GetDatas();

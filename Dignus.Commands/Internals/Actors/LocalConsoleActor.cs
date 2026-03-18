@@ -21,12 +21,6 @@ namespace Dignus.Commands.Internals.Actors
             {
                 commandExecutionActorRef.Post(message, Self);
             }
-            else if (message is CompleteCommandMessage)
-            {
-                commandExecutionActorRef.Post(message, Self);
-
-                ShowPrompt();
-            }
             else if (message is ChangeDirectoryRequestMessage changeDirectoryRequestMessage)
             {
                 HandleDirectoryChanged(changeDirectoryRequestMessage);
@@ -44,7 +38,7 @@ namespace Dignus.Commands.Internals.Actors
             Task.Run(() => 
             {
                 var line = Console.ReadLine();
-                var message = new RunCommandMessage(_currentPath, line);
+                var message = new RunCommandMessage(_currentPath, line, Self);
                 commandExecutionActorRef.Post(message, Self);
             });
         }

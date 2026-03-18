@@ -11,13 +11,6 @@ namespace Dignus.Commands.Internals.Actors
     internal class TelnetClientActor(IActorRef commandExecutionActorRef,
         string moduleName) : SessionActorBase
     {
-        private static readonly byte[] BackspaceEraseSequence =
-        [
-            (byte)ControlCharacter.Backspace,
-            0x20,
-            (byte)ControlCharacter.Backspace
-        ];
-
         private string _currentPath = "/";
         private readonly TelnetProtocolDecoder _protocolDecoder = new();
         protected override ValueTask OnReceive(IActorMessage message, IActorRef sender)
@@ -31,19 +24,15 @@ namespace Dignus.Commands.Internals.Actors
             {
                 commandExecutionActorRef.Post(message, Self);
             }
-            else if(message is CompleteCommandMessage)
-            {
-                commandExecutionActorRef.Post(message, Self);
-                ShowPrompt();
-            }
-            else if(message is OutgoingNetworkMessage networkMessage)
-            {
-                NetworkSession.SendAsync(networkMessage.Bytes);
-            }
             else if(message is CommandResponseMessage commandResponse)
             {
-                var bytes = Encoding.UTF8.GetBytes($"{commandResponse.Content}");
+                var bytes = Encoding.UTF8.GetBytes($"{commandResponse.Content}\r\n");
+
                 NetworkSession.SendAsync(bytes);
+            }
+            else if(message is OutgoingNetworkMessage outgoingNetworkMessage)
+            {
+                NetworkSession.SendAsync(outgoingNetworkMessage);
             }
             else if (message is StartPromptMessage)
             {
@@ -59,11 +48,7 @@ namespace Dignus.Commands.Internals.Actors
         private void ShowPrompt() 
         {
             var bytes = Encoding.UTF8.GetBytes($"{moduleName}:{_currentPath} > ");
-            var promptMessage = new OutgoingNetworkMessage()
-            {
-                Bytes = bytes
-            };
-            Self.Post(promptMessage);
+            NetworkSession.SendAsync(bytes);
         }
         private void HandleDirectoryChanged(ChangeDirectoryRequestMessage changeDirectoryRequest)
         {
@@ -86,11 +71,10 @@ namespace Dignus.Commands.Internals.Actors
                 case ControlCharacter.Delete:
                     {
                         if (_protocolDecoder.IsBufferEmpty == false)
-                        {
+                       {
                             _protocolDecoder.RemoveLastCharacterFromBuffer();
-                            NetworkSession.SendAsync(BackspaceEraseSequence);
+                            NetworkSession.SendAsync(TelnetProtocolDecoder.BackspaceEraseSequence);
                         }
-
                         return;
                     }
 
@@ -103,12 +87,8 @@ namespace Dignus.Commands.Internals.Actors
 
                         if (string.IsNullOrWhiteSpace(commandLine) == false)
                         {
-                            this.Post(Self, new CommandResponseMessage()
-                            {
-                                Content = "\r\n"
-                            });
-
-                            commandExecutionActorRef.Post(new RunCommandMessage(string.Join("/", _currentPath), commandLine), Self);
+                            Post(Self, new CommandResponseMessage());
+                            commandExecutionActorRef.Post(new RunCommandMessage(_currentPath, commandLine, Self), Self);
                         }
                         return;
                     }

@@ -9,7 +9,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageProjectUrl>https://github.com/EomTaeWook/Dignus.Commands</PackageProjectUrl>
     <RepositoryUrl>https://github.com/EomTaeWook/Dignus.Commands</RepositoryUrl>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <PackageIcon>Icon.jpg</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -30,7 +30,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Dignus.ActorServer" Version="1.2.1" />
+    <PackageReference Include="Dignus.ActorServer" Version="1.2.2" />
   </ItemGroup>
 
   <Target Name="PostPack" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">

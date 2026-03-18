@@ -17,7 +17,6 @@ namespace Dignus.Commands.Commands
         public Task InvokeAsync(string[] args, string currentPath, IActorRef sender, CancellationToken cancellationToken)
         {
             var sb = new StringBuilder();
-            sb.AppendLine();
 
             foreach (var name in commandTable.GetGlobalCommandList())
             {
@@ -33,7 +32,7 @@ namespace Dignus.Commands.Commands
 
             foreach (var item in aliasTable.GetDatas())
             {
-                sb.AppendLine($"{item.Alias} : {item.Cmd}");
+                sb.AppendLine($"{item.Alias} : {item.CommandName}");
             }
 
             sb.AppendLine();

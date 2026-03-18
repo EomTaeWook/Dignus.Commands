@@ -1,5 +1,5 @@
 ﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.Messages;
+using Dignus.Actor.Core.DeadLetter;
 using Dignus.Commands.Internals;
 using Dignus.Commands.Internals.Actors;
 using Dignus.Commands.Internals.Interfaces;
@@ -17,11 +17,12 @@ namespace Dignus.Commands
         CommandModuleBase(moduleName), 
         ITelnetServerEventHandler
     {
+        public event Action<DeadLetterMessage> DeadLetterMessageReceived;
+
         private TelnetServer _telnetServer;
         private readonly int _port = port;
 
         private readonly AsyncPipeline<CommandPipelineContext> _commandPipeline = new();
-
         public void Build()
         {
             BuildInternal();
@@ -70,6 +71,7 @@ namespace Dignus.Commands
             {
                 Bytes = telnetNegotiation
             });
+
             connectedActorRef.Post(new StartPromptMessage());
         }
 
@@ -80,7 +82,7 @@ namespace Dignus.Commands
 
         void ITelnetServerEventHandler.OnDeadLetterMessage(DeadLetterMessage deadLetterMessage)
         {
-
+            DeadLetterMessageReceived?.Invoke(deadLetterMessage);
         }
 
         TelnetClientActor ITelnetServerEventHandler.CreateSessionActor()
@@ -89,6 +91,7 @@ namespace Dignus.Commands
             {
                 return new CommandExecutionActor(_serviceProvider, _commandPipeline, null);
             });
+
             return new TelnetClientActor(executionActorRef,
                 GetModuleName());
         }

@@ -5,6 +5,13 @@ namespace Dignus.Commands.Network.Decoders
 {
     internal class TelnetProtocolDecoder
     {
+        public static readonly byte[] BackspaceEraseSequence =
+        [
+            (byte)ControlCharacter.Backspace,
+            0x20,
+            (byte)ControlCharacter.Backspace
+        ];
+
         private const byte TelnetInterpretAsCommand = 0xFF;
         private const byte TelnetCommandMax = 0xEF;
         private const byte EscapeSequenceTerminatorMin = 0x40;

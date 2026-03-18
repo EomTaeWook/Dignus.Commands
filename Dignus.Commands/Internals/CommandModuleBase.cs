@@ -29,7 +29,7 @@ namespace Dignus.Commands.Internals
             _serviceContainer = new ServiceContainer();
         }
 
-        private void RegisterCommandActions(Assembly assembly)
+        private void RegisterCommandActionsFromAssembly(Assembly assembly)
         {
             foreach (var type in assembly.GetTypes())
             {
@@ -48,9 +48,10 @@ namespace Dignus.Commands.Internals
             }
             _isBuilt = true;
 
-            var assembly = Assembly.GetCallingAssembly();
-            _serviceContainer.RegisterDependencies(assembly);
-            RegisterCommandActions(assembly);
+            var callingAssembly = Assembly.GetCallingAssembly();
+
+            _serviceContainer.RegisterDependencies(callingAssembly);
+            RegisterCommandActionsFromAssembly(callingAssembly);
 
             _serviceContainer.RegisterType(_commandTable);
             _serviceContainer.RegisterType(_serviceContainer);
@@ -64,16 +65,44 @@ namespace Dignus.Commands.Internals
             {
                 _serviceContainer.RegisterType(new AliasTable([]));
             }
+
             _serviceProvider = _serviceContainer.Build();
         }
-        public void AddCommand(string path, string command, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
+        public void AddCommand(string commandName, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
         {
-            AddCommandInternal(path, command, new ActionCommand(action, desc), false);
+            AddCommand(string.Empty, commandName, desc, action);
         }
-        public void AddCommand(string command, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
+
+        public void AddCommand(string commandPath, string commandName, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
         {
-            AddCommand(string.Empty, command, desc, action);
+            var actionCommand = new ActionCommand(action, desc);
+            AddCommandInternal(commandPath, commandName, new ActionCommand(action, desc), false);
         }
+
+        public void AddCommand<T>(T command) where T : class, IPathCommand
+        {
+            var commandType = command.GetType();
+
+            if (commandType.IsDefined(typeof(CommandAttribute)))
+            {
+                var attribute = commandType.GetCustomAttribute<CommandAttribute>();
+                AddCommandInternal(attribute.CommandPath, attribute.CommandName, command, false);
+            }
+            else if (commandType.IsDefined(typeof(GlobalCommandAttribute)))
+            {
+                var attributes = commandType.GetCustomAttributes<GlobalCommandAttribute>();
+                foreach (var attribute in attributes)
+                {
+                    AddCommandInternal(string.Empty, attribute.CommandName, command, true);
+                }
+            }
+        }
+
+        public void AddCommand<T>() where T : IPathCommand
+        {
+            AddCommand(typeof(T));
+        }
+
         private void AddCommandInternal<T>(string commandPath, string commandName, T command, bool isGlobalCommand) where T : class, IPathCommand
         {
             if (isGlobalCommand == true)
@@ -87,32 +116,7 @@ namespace Dignus.Commands.Internals
 
             _serviceContainer.RegisterType(commandName, command);
         }
-
-        public void AddCommand<T>(T command) where T : class, IPathCommand
-        {
-            var commandType = command.GetType();
-            var commandAttrType = typeof(CommandAttribute);
-            var globalCommandAttrType = typeof(GlobalCommandAttribute);
-
-            if (commandType.IsDefined(commandAttrType))
-            {
-                var attr = commandType.GetCustomAttribute<CommandAttribute>();
-                AddCommandInternal(attr.CommandPath, attr.CommandName, command, false);
-            }
-            else if (commandType.IsDefined(globalCommandAttrType))
-            {
-                var attrs = commandType.GetCustomAttributes<GlobalCommandAttribute>();
-                foreach (var attr in attrs)
-                {
-                    AddCommandInternal(string.Empty, attr.CommandName, command, true);
-                }
-            }
-        }
-        public void AddCommand<T>() where T : IPathCommand
-        {
-            AddCommand(typeof(T));
-        }
-
+        
         public void AddCommand(Type commandType)
         {
             if (typeof(IPathCommand).IsAssignableFrom(commandType) == false || commandType.IsInterface == true)
@@ -120,19 +124,17 @@ namespace Dignus.Commands.Internals
                 throw new InvalidCastException(nameof(commandType));
             }
 
-            var commandAttrType = typeof(CommandAttribute);
-            var globalCommandAttrType = typeof(GlobalCommandAttribute);
-
             var commandNames = new List<string>();
             var commandPath = string.Empty;
             bool isGlobalCommand = false;
-            if (commandType.IsDefined(commandAttrType) == true)
+
+            if (commandType.IsDefined(typeof(CommandAttribute)) == true)
             {
                 var attr = commandType.GetCustomAttribute<CommandAttribute>();
                 commandPath = attr.CommandPath;
                 commandNames.Add(attr.CommandName);
             }
-            else if (commandType.IsDefined(globalCommandAttrType) == true)
+            else if (commandType.IsDefined(typeof(GlobalCommandAttribute)) == true)
             {
                 isGlobalCommand = true;
 

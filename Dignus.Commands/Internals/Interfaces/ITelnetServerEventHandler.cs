@@ -1,5 +1,5 @@
 ﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.Messages;
+using Dignus.Actor.Core.DeadLetter;
 using Dignus.Commands.Internals.Actors;
 
 namespace Dignus.Commands.Internals.Interfaces
