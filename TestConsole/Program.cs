@@ -15,14 +15,27 @@ using System.Reflection;
 LogBuilder.Configuration(LogConfigXmlReader.Load($"{AppContext.BaseDirectory}DignusLog.config"));
 LogBuilder.Build();
 
-var module = new LocalCommandRunner();
+var module = new TelnetCommandRunner();
 
-module.ExitRequested += Module_ExitRequested;
+module.SessionConnected += Module_SessionConnected;
+module.SessionDisconnected += Module_SessionDisconnected;
 
-void Module_ExitRequested()
+void Module_SessionDisconnected(IActorRef obj)
 {
-    LogHelper.Info("Module_ExitRequested");
+    LogHelper.Info($"Module_SessionDisconnected : {obj.GetHashCode()}");
 }
+
+void Module_SessionConnected(IActorRef obj)
+{
+    LogHelper.Info($"Module_SessionConnected : {obj.GetHashCode()}");
+}
+
+//module.ExitRequested += Module_ExitRequested;
+
+//void Module_ExitRequested()
+//{
+//    LogHelper.Info("Module_ExitRequested");
+//}
 
 module.AddCommand<Close>();
 
