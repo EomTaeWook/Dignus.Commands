@@ -23,15 +23,16 @@ namespace Dignus.Commands
 
         public void Build()
         {
-            BuildInternal();
-
+            _serviceContainer.RegisterType(_commandPipeline);
             _commandPipeline.Use(new CommandExecutionMiddleware());
+
+            BuildInternal();
 
             var executionActorRef = CommandActorSystem.Instance.Spawn(() =>
             {
-                return new CommandExecutionActor(_serviceProvider,
-                    _commandPipeline,
-                    RequestExit);
+                var actor = _serviceContainer.GetService<CommandExecutionActor>();
+
+                return actor;
             });
 
             _localConsoleActorRef = CommandActorSystem.Instance.Spawn(() =>

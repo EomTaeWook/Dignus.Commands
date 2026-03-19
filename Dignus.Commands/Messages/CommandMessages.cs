@@ -25,4 +25,7 @@ namespace Dignus.Commands.Messages
     internal struct StartPromptMessage : IActorMessage
     {
     }
+    public struct ConfirmCommandExitMessage : IActorMessage
+    { }
+
 }

@@ -7,8 +7,7 @@ namespace Dignus.Commands.Internals
         private readonly UniqueSet<string> _commandNames = [];
         private readonly UniqueSet<string> _globalCommandNames = [];
 
-        private readonly Dictionary<string, Type> _commandNameToTypeMapping = [];
-        public void AddCommand(string path, string commandName, Type commandType)
+        public string AddCommand(string path, string commandName)
         {
             var key = commandName;
             if(string.IsNullOrWhiteSpace(path) == false)
@@ -16,16 +15,15 @@ namespace Dignus.Commands.Internals
                 key = $"{path}/{commandName}";
             }
             _commandNames.Add(key);
-
-            _commandNameToTypeMapping.Add(key, commandType);
+            return key;
         }
 
-        public void AddGlobalCommand(string commandName, Type commandType)
+        public string AddGlobalCommand(string commandName)
         {
             _globalCommandNames.Add(commandName);
-            _commandNameToTypeMapping.Add(commandName, commandType);
+            return commandName;
         }
-        public ArrayQueue<string> GetCommandListByPath(string currentPath) 
+        public IEnumerable<string> GetCommandListByPath(string currentPath) 
         {
             var findNames = new ArrayQueue<string>();
 
@@ -40,19 +38,10 @@ namespace Dignus.Commands.Internals
             }
             return findNames;
         }
-        public Type GetCommandType(string commandKey)
-        {
-            if (_commandNameToTypeMapping.TryGetValue(commandKey, out var type))
-            {
-                return type;
-            }
-
-            return null;
-        }
-        public Type GetCommandType(string currentPath, string commandName)
+        public string GetCommand(string currentPath, string commandName)
         {
             string key;
-            if(string.IsNullOrWhiteSpace(currentPath))
+            if (string.IsNullOrWhiteSpace(currentPath))
             {
                 key = commandName;
             }
@@ -61,25 +50,26 @@ namespace Dignus.Commands.Internals
                 key = $"{currentPath}/{commandName}";
             }
 
-            return GetCommandType(key);
-        }
-
-        public Type GetGlobalCommandType(string commandName)
-        {
-            if(_globalCommandNames.Contains(commandName) == false)
+            if (_commandNames.Contains(key))
             {
-                return null;
+                return key;
             }
 
-            if (_commandNameToTypeMapping.TryGetValue(commandName, out var type))
+            if (_globalCommandNames.Contains(commandName))
             {
-                return type;
+                return commandName;
             }
+
             return null;
         }
+
         public IEnumerable<string> GetGlobalCommandList()
         {
             return _globalCommandNames;
+        }
+        public IEnumerable<string> GetCommandList()
+        {
+            return _commandNames;
         }
     }
 }

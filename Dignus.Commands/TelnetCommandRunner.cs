@@ -7,9 +7,9 @@ using Dignus.Commands.Messages;
 using Dignus.Commands.Network;
 using Dignus.Commands.Network.Messages;
 using Dignus.Commands.Pipeline;
+using Dignus.DependencyInjection.Extensions;
 using Dignus.Framework.Pipeline;
 using Dignus.Framework.Pipeline.Interfaces;
-using System.Text;
 
 namespace Dignus.Commands
 {
@@ -18,6 +18,8 @@ namespace Dignus.Commands
         ITelnetServerEventHandler
     {
         public event Action<DeadLetterMessage> DeadLetterMessageReceived;
+        public event Action<IActorRef> SessionConnected;
+        public event Action<IActorRef> SessionDisconnected;
 
         private TelnetServer _telnetServer;
         private readonly int _port = port;
@@ -27,7 +29,6 @@ namespace Dignus.Commands
         {
             BuildInternal();
             _commandPipeline.Use(new CommandExecutionMiddleware());
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             _telnetServer = new TelnetServer(this);
         }
@@ -73,11 +74,14 @@ namespace Dignus.Commands
             });
 
             connectedActorRef.Post(new StartPromptMessage());
+
+            SessionConnected?.Invoke(connectedActorRef);
         }
 
         void ITelnetServerEventHandler.OnDisconnected(IActorRef connectedActorRef)
         {
             connectedActorRef.Post(new CancelCommandMessage());
+            SessionDisconnected?.Invoke(connectedActorRef);
         }
 
         void ITelnetServerEventHandler.OnDeadLetterMessage(DeadLetterMessage deadLetterMessage)
@@ -89,7 +93,8 @@ namespace Dignus.Commands
         {
             var executionActorRef = CommandActorSystem.Instance.Spawn(() =>
             {
-                return new CommandExecutionActor(_serviceProvider, _commandPipeline, null);
+                var actor = _serviceProvider.GetService<CommandExecutionActor>();
+                return actor;
             });
 
             return new TelnetClientActor(executionActorRef,

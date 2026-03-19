@@ -4,14 +4,14 @@ using Dignus.Collections;
 using Dignus.Commands.Interfaces;
 using Dignus.Commands.Messages;
 using Dignus.Commands.Pipeline;
-using Dignus.DependencyInjection.Extensions;
+using Dignus.DependencyInjection;
+using Dignus.DependencyInjection.Attributes;
 using Dignus.Framework.Pipeline;
 
 namespace Dignus.Commands.Internals.Actors
 {
-    internal class CommandExecutionActor(IServiceProvider serviceProvider,
-        AsyncPipeline<CommandPipelineContext> commandPipeline,
-        Action onExitRequested
+    internal class CommandExecutionActor(ServiceContainer _serviceContainer,
+        AsyncPipeline<CommandPipelineContext> commandPipeline
         ) : ActorBase
     {
         private CancellationTokenSource _cancellationToken;
@@ -24,13 +24,12 @@ namespace Dignus.Commands.Internals.Actors
             }
             else if(message is CancelCommandMessage cancelCommand)
             {
-                await HandleMessage(cancelCommand);
+                await HandleMessage(cancelCommand, sender);
             }
             else if(message is CompleteCommandMessage completeCommand)
             {
                 await HandleMessage(completeCommand);
             }
-
         }
         private async ValueTask HandleMessage(CompleteCommandMessage completeCommandMessage)
         {
@@ -48,7 +47,7 @@ namespace Dignus.Commands.Internals.Actors
                 await StartCommandExecutionAsync(item.CurrentPath, item.CommandLine, false, item.Sender);
             }
         }
-        private Task HandleMessage(CancelCommandMessage _)
+        private Task HandleMessage(CancelCommandMessage _, IActorRef sender)
         {
             if (_cancellationToken != null)
             {
@@ -56,7 +55,7 @@ namespace Dignus.Commands.Internals.Actors
             }
             else
             {
-                onExitRequested?.Invoke();
+                sender.Post(new ConfirmCommandExitMessage(), Self);
             }
             return Task.CompletedTask;
         }
@@ -117,36 +116,31 @@ namespace Dignus.Commands.Internals.Actors
                 currentPath = currentPath.TrimStart('/');
             }
 
-            var aliasTable = serviceProvider.GetService<AliasTable>();
+            var aliasTable = _serviceContainer.GetService<AliasTable>();
             if (aliasTable.Alias.TryGetValue(commandName, out var aliasModel) == true && isAlias == false)
             {
                 await ExecuteCommandAsync(currentPath, aliasModel.CommandName, args, true, sender, cancellationToken);
                 return;
             }
 
-            var commandTable = serviceProvider.GetService<CommandTable>();
+            var commandTable = _serviceContainer.GetService<CommandTable>();
 
-            var commandType = commandTable.GetCommandType(currentPath, commandName);
+            var resolvedCommandName = commandTable.GetCommand(currentPath, commandName);
 
-            if (commandType == null)
+            if (resolvedCommandName == null)
             {
-                commandType = commandTable.GetGlobalCommandType(commandName);
-
-                if(commandType == null)
+                sender.Post(new CommandResponseMessage()
                 {
-                    sender.Post(new CommandResponseMessage()
-                    {
-                        Content = $"Command `{commandName}` was not found. Please type 'help' to see the available commands."
-                    }, Self);
+                    Content = $"Command `{commandName}` was not found. Please type 'help' to see the available commands."
+                }, Self);
 
-                    Post(Self, new CompleteCommandMessage(sender));
-                    return;
-                }
+                Post(Self, new CompleteCommandMessage(sender));
+                return;
             }
 
             try
             {
-                var command = (IPathCommand)serviceProvider.GetService(commandType);
+                var command = (IPathCommand)_serviceContainer.GetService(resolvedCommandName);
                 var context = new CommandPipelineContext()
                 {
                     CancellationToken = cancellationToken,

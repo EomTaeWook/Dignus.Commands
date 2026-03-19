@@ -3,6 +3,7 @@ using Dignus.Commands.Attributes;
 using Dignus.Commands.Interfaces;
 using Dignus.Commands.Internals;
 using Dignus.Commands.Messages;
+using Dignus.DependencyInjection;
 using System.Text;
 
 namespace Dignus.Commands.Commands
@@ -12,17 +13,16 @@ namespace Dignus.Commands.Commands
     [GlobalCommand("help")]
     internal class HelpCommand(AliasTable aliasTable,
         CommandTable commandTable,
-        IServiceProvider serviceProvider) : IPathCommand
+        ServiceContainer _serviceContainer) : IPathCommand
     {
         public Task InvokeAsync(string[] args, string currentPath, IActorRef sender, CancellationToken cancellationToken)
         {
             var sb = new StringBuilder();
 
-            foreach (var name in commandTable.GetGlobalCommandList())
+            foreach (var commandName in commandTable.GetGlobalCommandList())
             {
-                var commandType = commandTable.GetGlobalCommandType(name);
-                var command = (IPathCommand)serviceProvider.GetService(commandType);
-                sb.AppendLine($"{name} : {command.Print()}");
+                var command = (IPathCommand)_serviceContainer.GetService(commandName);
+                sb.AppendLine($"{commandName} : {command.Print()}");
             }
 
             if (aliasTable.Alias.Count > 0)
@@ -37,16 +37,15 @@ namespace Dignus.Commands.Commands
 
             sb.AppendLine();
 
-            foreach (var name in commandTable.GetCommandListByPath(currentPath))
+            foreach (var commandName in commandTable.GetCommandListByPath(currentPath))
             {
-                var commandType = commandTable.GetCommandType(name);
-                var command = (IPathCommand)serviceProvider.GetService(commandType);
+                var command = (IPathCommand)_serviceContainer.GetService(commandName);
 
-                string displayName = name;
+                string displayName = commandName;
 
                 if (string.IsNullOrWhiteSpace(currentPath) == false)
                 {
-                    displayName = name[(currentPath.Length + 1)..];
+                    displayName = commandName[(currentPath.Length + 1)..];
                 }
                 sb.AppendLine($"{displayName} : {command.Print()}");
             }

@@ -2,8 +2,8 @@
 using Dignus.Commands.Attributes;
 using Dignus.Commands.Commands;
 using Dignus.Commands.Interfaces;
+using Dignus.Commands.Internals.Actors;
 using Dignus.DependencyInjection;
-using Dignus.DependencyInjection.Extensions;
 using System.Reflection;
 using System.Text.Json;
 
@@ -11,10 +11,8 @@ namespace Dignus.Commands.Internals
 {
     public abstract class CommandModuleBase
     {
-        internal protected IServiceProvider _serviceProvider;
-
-        private readonly ServiceContainer _serviceContainer;
-
+        protected IServiceProvider _serviceProvider;
+        protected readonly ServiceContainer _serviceContainer = new();
         private readonly CommandTable _commandTable = new();
         private bool _isBuilt = false;
         private readonly string _moduleName;
@@ -26,10 +24,9 @@ namespace Dignus.Commands.Internals
                 moduleName = Assembly.GetEntryAssembly().GetName().Name;
             }
             _moduleName = moduleName;
-            _serviceContainer = new ServiceContainer();
         }
 
-        private void RegisterCommandActionsFromAssembly(Assembly assembly)
+        public void RegisterCommandActionsFromAssembly(Assembly assembly)
         {
             foreach (var type in assembly.GetTypes())
             {
@@ -40,7 +37,7 @@ namespace Dignus.Commands.Internals
                 }
             }
         }
-        internal void BuildInternal()
+        internal IServiceProvider BuildInternal()
         {
             if (_isBuilt == true)
             {
@@ -49,12 +46,9 @@ namespace Dignus.Commands.Internals
             _isBuilt = true;
 
             var callingAssembly = Assembly.GetCallingAssembly();
-
-            _serviceContainer.RegisterDependencies(callingAssembly);
             RegisterCommandActionsFromAssembly(callingAssembly);
 
             _serviceContainer.RegisterType(_commandTable);
-            _serviceContainer.RegisterType(_serviceContainer);
 
             if (File.Exists(AliasTable.Path) == true)
             {
@@ -65,8 +59,13 @@ namespace Dignus.Commands.Internals
             {
                 _serviceContainer.RegisterType(new AliasTable([]));
             }
-
-            _serviceProvider = _serviceContainer.Build();
+            _serviceContainer.RegisterType<CommandExecutionActor, CommandExecutionActor>();
+            _serviceContainer.RegisterType(_serviceContainer);
+            return _serviceProvider = _serviceContainer.Build();
+        }
+        public void AddGlobalCommand(string commandName, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
+        {
+            AddCommandInternal(string.Empty, commandName, new ActionCommand(action, desc), true);
         }
         public void AddCommand(string commandName, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
         {
@@ -79,44 +78,19 @@ namespace Dignus.Commands.Internals
             AddCommandInternal(commandPath, commandName, new ActionCommand(action, desc), false);
         }
 
-        public void AddCommand<T>(T command) where T : class, IPathCommand
+        public void AddCommand<T>(string commandPath, string commandName, T command) where T : class, IPathCommand
         {
-            var commandType = command.GetType();
-
-            if (commandType.IsDefined(typeof(CommandAttribute)))
-            {
-                var attribute = commandType.GetCustomAttribute<CommandAttribute>();
-                AddCommandInternal(attribute.CommandPath, attribute.CommandName, command, false);
-            }
-            else if (commandType.IsDefined(typeof(GlobalCommandAttribute)))
-            {
-                var attributes = commandType.GetCustomAttributes<GlobalCommandAttribute>();
-                foreach (var attribute in attributes)
-                {
-                    AddCommandInternal(string.Empty, attribute.CommandName, command, true);
-                }
-            }
+            AddCommandInternal(commandPath, commandName, command, false);
         }
-
+        public void AddGlobalCommand<T>(string commandName, T command) where T : class, IPathCommand
+        {
+            AddCommandInternal(string.Empty, commandName, command, true);
+        }
         public void AddCommand<T>() where T : IPathCommand
         {
             AddCommand(typeof(T));
         }
 
-        private void AddCommandInternal<T>(string commandPath, string commandName, T command, bool isGlobalCommand) where T : class, IPathCommand
-        {
-            if (isGlobalCommand == true)
-            {
-                _commandTable.AddGlobalCommand(commandName, typeof(T));
-            }
-            else
-            {
-                _commandTable.AddCommand(commandPath, commandName, typeof(T));
-            }
-
-            _serviceContainer.RegisterType(commandName, command);
-        }
-        
         public void AddCommand(Type commandType)
         {
             if (typeof(IPathCommand).IsAssignableFrom(commandType) == false || commandType.IsInterface == true)
@@ -151,17 +125,32 @@ namespace Dignus.Commands.Internals
 
             foreach (var commandName in commandNames)
             {
+                string commandKey;
                 if (isGlobalCommand)
                 {
-                    _commandTable.AddGlobalCommand(commandName, commandType);
+                    commandKey = _commandTable.AddGlobalCommand(commandName);
                 }
                 else
                 {
-                    _commandTable.AddCommand(commandPath, commandName, commandType);
+                    commandKey = _commandTable.AddCommand(commandPath, commandName);
                 }
-
-                _serviceContainer.RegisterType(commandName, commandType, LifeScope.Transient);
+                _serviceContainer.RegisterType(commandKey, commandType, LifeScope.Transient);
             }
+        }
+
+        private void AddCommandInternal<T>(string commandPath, string commandName, T command, bool isGlobalCommand) where T : class, IPathCommand
+        {
+            string commandKey;
+            if (isGlobalCommand == true)
+            {
+                commandKey = _commandTable.AddGlobalCommand(commandName);
+            }
+            else
+            {
+                commandKey = _commandTable.AddCommand(commandPath, commandName);
+            }
+
+            _serviceContainer.RegisterType(commandKey, command);
         }
 
         public string GetModuleName()
