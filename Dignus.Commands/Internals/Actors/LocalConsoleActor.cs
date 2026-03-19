@@ -4,9 +4,11 @@ using Dignus.Commands.Messages;
 
 namespace Dignus.Commands.Internals.Actors
 {
-    internal class LocalConsoleActor(IActorRef commandExecutionActorRef, string moduleName) : ActorBase
+    internal class LocalConsoleActor(IActorRef commandExecutionActorRef) : ActorBase
     {
         private string _currentPath = "/";
+        private Action _exitRequested;
+        private string _moduleName;
         protected override ValueTask OnReceive(IActorMessage message, IActorRef sender)
         {
             if(message is CommandResponseMessage commandResponse)
@@ -25,7 +27,16 @@ namespace Dignus.Commands.Internals.Actors
             {
                 HandleDirectoryChanged(changeDirectoryRequestMessage);
             }
+            else if(message is ConfirmCommandExitMessage)
+            {
+                _exitRequested?.Invoke();
+            }
             return ValueTask.CompletedTask;
+        }
+        public void Initialize(string moduleName, Action exitRequested)
+        {
+            _moduleName = moduleName;
+            _exitRequested = exitRequested;
         }
         private void HandleDirectoryChanged(ChangeDirectoryRequestMessage changeDirectoryRequest)
         {
@@ -34,7 +45,7 @@ namespace Dignus.Commands.Internals.Actors
         }
         private void ShowPrompt()
         {
-            Console.Write($"{moduleName}:{_currentPath}> ");
+            Console.Write($"{_moduleName}:{_currentPath}> ");
             Task.Run(() => 
             {
                 var line = Console.ReadLine();

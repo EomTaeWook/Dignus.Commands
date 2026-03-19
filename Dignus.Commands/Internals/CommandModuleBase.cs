@@ -11,7 +11,6 @@ namespace Dignus.Commands.Internals
 {
     public abstract class CommandModuleBase
     {
-        protected IServiceProvider _serviceProvider;
         protected readonly ServiceContainer _serviceContainer = new();
         private readonly CommandTable _commandTable = new();
         private bool _isBuilt = false;
@@ -61,7 +60,7 @@ namespace Dignus.Commands.Internals
             }
             _serviceContainer.RegisterType<CommandExecutionActor, CommandExecutionActor>();
             _serviceContainer.RegisterType(_serviceContainer);
-            return _serviceProvider = _serviceContainer.Build();
+            return _serviceContainer.Build();
         }
         public void AddGlobalCommand(string commandName, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
         {

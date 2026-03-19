@@ -25,10 +25,14 @@ namespace Dignus.Commands
         private readonly int _port = port;
 
         private readonly AsyncPipeline<CommandPipelineContext> _commandPipeline = new();
+        private IServiceProvider _serviceProvider;
         public void Build()
         {
-            BuildInternal();
+            _serviceContainer.RegisterType(_commandPipeline);
             _commandPipeline.Use(new CommandExecutionMiddleware());
+
+            _serviceProvider = BuildInternal();
+            
 
             _telnetServer = new TelnetServer(this);
         }

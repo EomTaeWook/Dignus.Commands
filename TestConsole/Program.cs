@@ -17,6 +17,13 @@ LogBuilder.Build();
 
 var module = new LocalCommandRunner();
 
+module.ExitRequested += Module_ExitRequested;
+
+void Module_ExitRequested()
+{
+    LogHelper.Info("Module_ExitRequested");
+}
+
 module.AddCommand<Close>();
 
 module.AddCommand("process","l", "loop desc", TestAsync);

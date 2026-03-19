@@ -37,7 +37,11 @@ namespace Dignus.Commands
 
             _localConsoleActorRef = CommandActorSystem.Instance.Spawn(() =>
             {
-                return new LocalConsoleActor(executionActorRef, GetModuleName());
+                var actor = new LocalConsoleActor(executionActorRef);
+
+                actor.Initialize(GetModuleName(), ExitRequested);
+
+                return actor;
             });
         }
         public void AddMiddleware(IAsyncMiddleware<CommandPipelineContext> middlewareInstance)

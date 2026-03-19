@@ -77,6 +77,10 @@ namespace Dignus.Commands.Internals.Actors
 
         private ValueTask StartCommandExecutionAsync(string currentPath, string commandLine, bool isAlias, IActorRef sender)
         {
+            if(string.IsNullOrWhiteSpace(commandLine))
+            {
+                return ValueTask.CompletedTask;
+            }
             var cancellationTokenSource = new CancellationTokenSource();
 
             if (Interlocked.CompareExchange(ref _cancellationToken, cancellationTokenSource, null) != null)
