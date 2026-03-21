@@ -30,7 +30,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Dignus.ActorServer" Version="2.0.0" />
+    <PackageReference Include="Dignus.ActorServer" Version="2.0.1" />
   </ItemGroup>
 
   <Target Name="PostPack" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
