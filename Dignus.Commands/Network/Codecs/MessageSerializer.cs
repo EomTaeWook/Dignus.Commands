@@ -3,8 +3,9 @@ using Dignus.Actor.Network.Messages;
 using Dignus.Collections;
 using Dignus.Commands.Network.Messages;
 using Dignus.Sockets.Interfaces;
+using System.Text;
 
-namespace Dignus.Commands.Network.Codec
+namespace Dignus.Commands.Network.Codecs
 {
     internal class MessageSerializer : IActorMessageSerializer
     {
@@ -18,8 +19,19 @@ namespace Dignus.Commands.Network.Codec
 
         public ArraySegment<byte> MakeSendBuffer(INetworkActorMessage message)
         {
-            var networkMessage = (OutgoingNetworkMessage)message;
-            return networkMessage.Bytes;
+            if (message is not OutgoingMessage networkMessage)
+            {
+                return null;
+            }
+
+            if (networkMessage.AppendNewline)
+            {
+                return Encoding.UTF8.GetBytes($"{networkMessage.Content}\r\n");
+            }
+            else
+            {
+                return Encoding.UTF8.GetBytes($"{networkMessage.Content}");
+            }
         }
     }
 }

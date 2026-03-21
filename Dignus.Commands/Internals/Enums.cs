@@ -13,4 +13,21 @@
         CarriageReturn = 0x0D,
         Delete = 0x7F
     }
+
+    internal enum TelnetInputDecodeState
+    {
+        None,
+        TelnetCommand,
+        EscapePrefix,
+        EscapeBody
+    }
+
+    internal enum TerminalInputKey
+    {
+        ArrowUp,
+        ArrowDown,
+        ArrowLeft,
+        ArrowRight
+    }
+
 }

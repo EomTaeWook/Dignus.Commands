@@ -2,7 +2,7 @@
 using Dignus.Actor.Core.Messages;
 using Dignus.Actor.Network;
 using Dignus.Commands.Messages;
-using Dignus.Commands.Network.Decoders;
+using Dignus.Commands.Network.Codecs;
 using Dignus.Commands.Network.Messages;
 using System.Text;
 
@@ -12,7 +12,9 @@ namespace Dignus.Commands.Internals.Actors
         string moduleName) : SessionActorBase
     {
         private string _currentPath = "/";
-        private readonly TelnetProtocolDecoder _protocolDecoder = new();
+        private readonly TelnetConsoleInputDecoder _consoleInput = new();
+        private readonly List<string> _commandHistory = [];
+        private int _historyIndex = -1;
         protected override ValueTask OnReceive(IActorMessage message, IActorRef sender)
         {
             if(message is IncomingNetworkMessage commandLineMessage)
@@ -30,7 +32,7 @@ namespace Dignus.Commands.Internals.Actors
 
                 NetworkSession.SendAsync(bytes);
             }
-            else if(message is OutgoingNetworkMessage outgoingNetworkMessage)
+            else if(message is OutgoingMessage outgoingNetworkMessage)
             {
                 NetworkSession.SendAsync(outgoingNetworkMessage);
             }
@@ -47,7 +49,7 @@ namespace Dignus.Commands.Internals.Actors
         }
         private void ShowPrompt() 
         {
-            var bytes = Encoding.UTF8.GetBytes($"{moduleName}:{_currentPath} > ");
+            var bytes = Encoding.UTF8.GetBytes(GetPromptText());
             NetworkSession.SendAsync(bytes);
         }
         private void HandleDirectoryChanged(ChangeDirectoryRequestMessage changeDirectoryRequest)
@@ -57,10 +59,61 @@ namespace Dignus.Commands.Internals.Actors
         }
         private void HandleInput(IncomingNetworkMessage message)
         {
-            _protocolDecoder.DecodeIncomingNetworkBytes(message.Bytes,
-                HandleValidCharacter);
+            _consoleInput.DecodeIncomingNetworkBytes(message.Bytes,
+                HandleValidCharacter,
+                HandleTerminalInputKey);
         }
+        private void HandleTerminalInputKey(TerminalInputKey inputKey)
+        {
+            if (_commandHistory.Count == 0)
+            {
+                return;
+            }
 
+            if (inputKey == TerminalInputKey.ArrowUp)
+            {
+                if (_historyIndex < _commandHistory.Count - 1)
+                {
+                    _historyIndex++;
+                }
+
+                ReplaceCurrentInputLine(_commandHistory[_historyIndex]);
+                return;
+            }
+
+            if (inputKey == TerminalInputKey.ArrowDown)
+            {
+                if (_historyIndex > 0)
+                {
+                    _historyIndex--;
+                    ReplaceCurrentInputLine(_commandHistory[_historyIndex]);
+                    return;
+                }
+
+                _historyIndex = -1;
+                ReplaceCurrentInputLine(string.Empty);
+            }
+        }
+        private void ReplaceCurrentInputLine(string commandLine)
+        {
+            int previousInputLength = _consoleInput.CurrentBufferLength;
+            _consoleInput.ReplaceBuffer(commandLine);
+
+            var promptText = GetPromptText();
+
+            var stringBuilder = new StringBuilder();
+            stringBuilder.Append('\r');
+            stringBuilder.Append(' ', promptText.Length + previousInputLength);
+            stringBuilder.Append('\r');
+            stringBuilder.Append(promptText);
+            stringBuilder.Append(commandLine);
+
+            NetworkSession.SendAsync(Encoding.UTF8.GetBytes(stringBuilder.ToString()));
+        }
+        private string GetPromptText()
+        {
+            return $"{moduleName}:{_currentPath} > ";
+        }
         private void HandleValidCharacter(char character)
         {
             ControlCharacter controlCharacter = (ControlCharacter)character;
@@ -70,10 +123,10 @@ namespace Dignus.Commands.Internals.Actors
                 case ControlCharacter.Backspace:
                 case ControlCharacter.Delete:
                     {
-                        if (_protocolDecoder.IsBufferEmpty == false)
+                        if (_consoleInput.IsBufferEmpty == false)
                        {
-                            _protocolDecoder.RemoveLastCharacterFromBuffer();
-                            NetworkSession.SendAsync(TelnetProtocolDecoder.BackspaceEraseSequence);
+                            _consoleInput.RemoveLastCharacterFromBuffer();
+                            NetworkSession.SendAsync(TelnetConsoleInputDecoder.BackspaceEraseSequence);
                         }
                         return;
                     }
@@ -83,13 +136,17 @@ namespace Dignus.Commands.Internals.Actors
 
                 case ControlCharacter.LineFeed:
                     {
-                        string commandLine = _protocolDecoder.GetFinalCommandAndClearBuffer();
+                        string commandLine = _consoleInput.GetFinalCommandAndClearBuffer();
 
-                        if (string.IsNullOrWhiteSpace(commandLine) == false)
+                        if (string.IsNullOrWhiteSpace(commandLine) == true)
                         {
-                            Post(Self, new CommandResponseMessage());
-                            commandExecutionActorRef.Post(new RunCommandMessage(_currentPath, commandLine, Self), Self);
+                            return;
                         }
+
+                        Post(Self, new CommandResponseMessage());
+                        commandExecutionActorRef.Post(new RunCommandMessage(_currentPath, commandLine, Self), Self);
+                        _commandHistory.Add(commandLine);
+                        _historyIndex = _commandHistory.Count - 1;
                         return;
                     }
 
@@ -100,7 +157,7 @@ namespace Dignus.Commands.Internals.Actors
                     }
             }
 
-            _protocolDecoder.AppendCharacterToBuffer(character);
+            _consoleInput.AppendCharacterToBuffer(character);
             NetworkSession.SendAsync([(byte)character]);
         }
     }

@@ -1,11 +1,10 @@
-﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.DeadLetter;
+﻿using Dignus.Actor.Core.DeadLetter;
+using Dignus.Actor.Network;
 using Dignus.Commands.Internals;
 using Dignus.Commands.Internals.Actors;
 using Dignus.Commands.Internals.Interfaces;
 using Dignus.Commands.Messages;
 using Dignus.Commands.Network;
-using Dignus.Commands.Network.Messages;
 using Dignus.Commands.Pipeline;
 using Dignus.DependencyInjection.Extensions;
 using Dignus.Framework.Pipeline;
@@ -18,8 +17,8 @@ namespace Dignus.Commands
         ITelnetServerEventHandler
     {
         public event Action<DeadLetterMessage> DeadLetterMessageReceived;
-        public event Action<IActorRef> SessionConnected;
-        public event Action<IActorRef> SessionDisconnected;
+        public event Action<INetworkSessionRef> SessionConnected;
+        public event Action<INetworkSessionRef> SessionDisconnected;
 
         private TelnetServer _telnetServer;
         private readonly int _port = port;
@@ -58,7 +57,7 @@ namespace Dignus.Commands
             _telnetServer.Close();
         }
 
-        public void OnAccepted(IActorRef connectedActorRef)
+        public void OnAccepted(INetworkSessionRef connectedActorRef)
         {
             // 텔넷 협상을 위한 Interpret As Command (IAC) 바이트 정의
             byte interpretAsCommand = 0xFF; // IAC
@@ -72,20 +71,17 @@ namespace Dignus.Commands
                 interpretAsCommand, willCommand, suppressGoAheadOption
             ];
 
-            connectedActorRef.Post(new OutgoingNetworkMessage()
-            {
-                Bytes = telnetNegotiation
-            });
+            connectedActorRef.SendAsync(telnetNegotiation);            
 
             connectedActorRef.Post(new StartPromptMessage());
 
             SessionConnected?.Invoke(connectedActorRef);
         }
 
-        void ITelnetServerEventHandler.OnDisconnected(IActorRef connectedActorRef)
+        void ITelnetServerEventHandler.OnDisconnected(INetworkSessionRef disconnectedActorRef)
         {
-            connectedActorRef.Post(new CancelCommandMessage());
-            SessionDisconnected?.Invoke(connectedActorRef);
+            disconnectedActorRef.Post(new CancelCommandMessage());
+            SessionDisconnected?.Invoke(disconnectedActorRef);
         }
 
         void ITelnetServerEventHandler.OnDeadLetterMessage(DeadLetterMessage deadLetterMessage)

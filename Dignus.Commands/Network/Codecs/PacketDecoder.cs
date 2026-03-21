@@ -5,7 +5,7 @@ using Dignus.Commands.Network.Messages;
 using Dignus.Sockets;
 using Dignus.Sockets.Interfaces;
 
-namespace Dignus.Commands.Network.Decoders
+namespace Dignus.Commands.Network.Codecs
 {
     public class PacketDecoder : IActorMessageDecoder
     {

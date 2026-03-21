@@ -1,12 +1,10 @@
-﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.DeadLetter;
+﻿using Dignus.Actor.Core.DeadLetter;
 using Dignus.Actor.Network;
 using Dignus.Actor.Network.Options;
 using Dignus.Commands.Internals;
 using Dignus.Commands.Internals.Actors;
 using Dignus.Commands.Internals.Interfaces;
-using Dignus.Commands.Network.Codec;
-using Dignus.Commands.Network.Decoders;
+using Dignus.Commands.Network.Codecs;
 using System.Net;
 
 namespace Dignus.Commands.Network
@@ -23,7 +21,7 @@ namespace Dignus.Commands.Network
                 return telnetServerEventHandler.CreateSessionActor();
             }
 
-            protected override void OnAccepted(IActorRef connectedActorRef)
+            protected override void OnAccepted(INetworkSessionRef connectedActorRef)
             {
                 telnetServerEventHandler.OnAccepted(connectedActorRef);
             }
@@ -33,9 +31,9 @@ namespace Dignus.Commands.Network
                 telnetServerEventHandler.OnDeadLetterMessage(deadLetterMessage);
             }
 
-            protected override void OnDisconnected(IActorRef connectedActorRef)
+            protected override void OnDisconnected(INetworkSessionRef disconnectedSessionRef)
             {
-                telnetServerEventHandler.OnDisconnected(connectedActorRef);
+                telnetServerEventHandler.OnDisconnected(disconnectedSessionRef);
             }
         }
 
