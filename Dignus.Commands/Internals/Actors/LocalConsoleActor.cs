@@ -1,5 +1,5 @@
-﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.Messages;
+﻿using Dignus.Actor.Abstractions;
+using Dignus.Actor.Core;
 using Dignus.Commands.Messages;
 
 namespace Dignus.Commands.Internals.Actors

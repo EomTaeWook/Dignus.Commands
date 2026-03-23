@@ -1,9 +1,6 @@
-﻿using Dignus.Actor.Core.Messages;
+﻿using Dignus.Actor.Abstractions;
 
 namespace Dignus.Commands.Messages
 {
-    public struct CommandResponseMessage : IActorMessage
-    {
-        public string Content { get; set; }
-    }
+    public readonly record struct CommandResponseMessage(string Content) : IActorMessage;
 }

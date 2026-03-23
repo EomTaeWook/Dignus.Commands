@@ -1,11 +1,10 @@
-﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.Messages;
+﻿using Dignus.Actor.Abstractions;
+using Dignus.Actor.Core;
 using Dignus.Collections;
 using Dignus.Commands.Interfaces;
 using Dignus.Commands.Messages;
 using Dignus.Commands.Pipeline;
 using Dignus.DependencyInjection;
-using Dignus.DependencyInjection.Attributes;
 using Dignus.Framework.Pipeline;
 
 namespace Dignus.Commands.Internals.Actors
@@ -39,7 +38,6 @@ namespace Dignus.Commands.Internals.Actors
             if (expiredTokenSource != null)
             {
                 expiredTokenSource.Dispose();
-                return;
             }
 
             if (_commandMessages.TryRead(out var item))

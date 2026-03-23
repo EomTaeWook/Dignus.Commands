@@ -1,31 +1,12 @@
-﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.Messages;
+﻿using Dignus.Actor.Abstractions;
+using Dignus.Actor.Core;
 
 namespace Dignus.Commands.Messages
 {
-    internal struct CancelCommandMessage : IActorMessage
-    {
-    }
-    internal struct ChangeDirectoryRequestMessage : IActorMessage
-    {
-        public string Path { get; set; }
-    }
-    internal readonly struct CompleteCommandMessage(IActorRef promptTargetActorRef) : IActorMessage
-    {
-        public IActorRef PromptTargetActorRef { get; } = promptTargetActorRef;
-    }
-    internal readonly struct RunCommandMessage(string currentPath, string commandLine, IActorRef sender) : IActorMessage
-    {
-        public string CommandLine { get; } = commandLine;
-
-        public string CurrentPath { get; } = currentPath;
-
-        public IActorRef Sender { get; } = sender;
-    }
-    internal struct StartPromptMessage : IActorMessage
-    {
-    }
-    public struct ConfirmCommandExitMessage : IActorMessage
-    { }
-
+    internal readonly record struct CancelCommandMessage : IActorMessage;
+    internal readonly record struct ChangeDirectoryRequestMessage(string Path) : IActorMessage;
+    internal readonly record struct CompleteCommandMessage(IActorRef PromptTargetActorRef) : IActorMessage;
+    internal readonly record struct StartPromptMessage : IActorMessage;
+    internal readonly record struct ConfirmCommandExitMessage : IActorMessage;
+    internal readonly record struct RunCommandMessage(string CurrentPath, string CommandLine, IActorRef Sender) : IActorMessage;
 }

@@ -1,4 +1,4 @@
-﻿using Dignus.Actor.Core.Messages;
+﻿using Dignus.Actor.Abstractions;
 
 namespace Dignus.Commands.Network.Messages
 {

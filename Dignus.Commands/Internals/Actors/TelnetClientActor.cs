@@ -1,5 +1,5 @@
-﻿using Dignus.Actor.Core;
-using Dignus.Actor.Core.Messages;
+﻿using Dignus.Actor.Abstractions;
+using Dignus.Actor.Core;
 using Dignus.Actor.Network;
 using Dignus.Commands.Messages;
 using Dignus.Commands.Network.Codecs;
@@ -158,7 +158,7 @@ namespace Dignus.Commands.Internals.Actors
             }
 
             _consoleInput.AppendCharacterToBuffer(character);
-            NetworkSession.SendAsync([(byte)character]);
+            NetworkSession.SendAsync(Encoding.UTF8.GetBytes(character.ToString()));
         }
     }
 }
