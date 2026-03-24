@@ -1,20 +1,10 @@
-﻿using Dignus.Actor.Network;
-using Dignus.Commands.Internals;
+﻿using Dignus.Commands.Internals;
 using System.Text;
 
 namespace Dignus.Commands.Network.Codecs
 {
     internal class TelnetConsoleInputDecoder
     {
-        public static readonly byte[] BackspaceEraseSequence =
-        [
-            (byte)ControlCharacter.Backspace,
-            0x20,
-            (byte)ControlCharacter.Backspace
-        ];
-
-        private const byte TelnetInterpretAsCommand = 0xFF;
-
         private readonly StringBuilder _commandInputBuffer = new();
         private TelnetInputDecodeState _decodeState;
 
@@ -93,7 +83,7 @@ namespace Dignus.Commands.Network.Codecs
                     return true;
             }
 
-            if (currentByte == TelnetInterpretAsCommand)
+            if (currentByte == TelnetControlSequence.InterpretAsCommand)
             {
                 _decodeState = TelnetInputDecodeState.TelnetCommand;
                 return true;
@@ -107,8 +97,6 @@ namespace Dignus.Commands.Network.Codecs
 
             return false;
         }
-
-
         public void RemoveLastCharacterFromBuffer()
         {
             if (_commandInputBuffer.Length > 0)

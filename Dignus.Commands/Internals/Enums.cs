@@ -30,4 +30,17 @@
         ArrowRight
     }
 
+    public static class TelnetControlSequence
+    {
+        public static byte InterpretAsCommand {get;} =0xFF;
+
+        public static readonly byte[] BackspaceEraseSequence =
+        [
+            (byte)ControlCharacter.Backspace,
+            0x20,
+            (byte)ControlCharacter.Backspace
+        ];
+    }
+
+
 }

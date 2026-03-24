@@ -3,6 +3,7 @@ using Dignus.Actor.Core;
 using Dignus.Collections;
 using Dignus.Commands.Interfaces;
 using Dignus.Commands.Messages;
+using Dignus.Commands.Network.Messages;
 using Dignus.Commands.Pipeline;
 using Dignus.DependencyInjection;
 using Dignus.Framework.Pipeline;
@@ -156,6 +157,10 @@ namespace Dignus.Commands.Internals.Actors
             }
             catch (OperationCanceledException)
             {
+            }
+            catch(Exception ex)
+            {
+                sender.Post(new OutgoingMessage(ex.Message, true), Self);
             }
             finally
             {

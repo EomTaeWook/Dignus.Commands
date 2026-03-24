@@ -126,15 +126,12 @@ namespace Dignus.Commands.Internals.Actors
                         if (_consoleInput.IsBufferEmpty == false)
                        {
                             _consoleInput.RemoveLastCharacterFromBuffer();
-                            NetworkSession.SendAsync(TelnetConsoleInputDecoder.BackspaceEraseSequence);
+                            NetworkSession.SendAsync(TelnetControlSequence.BackspaceEraseSequence);
                         }
                         return;
                     }
 
                 case ControlCharacter.CarriageReturn:
-                    return;
-
-                case ControlCharacter.LineFeed:
                     {
                         string commandLine = _consoleInput.GetFinalCommandAndClearBuffer();
 
@@ -149,6 +146,10 @@ namespace Dignus.Commands.Internals.Actors
                         _historyIndex = _commandHistory.Count - 1;
                         return;
                     }
+
+
+                case ControlCharacter.LineFeed:
+                    return;
 
                 case ControlCharacter.EndOfText:
                     {
