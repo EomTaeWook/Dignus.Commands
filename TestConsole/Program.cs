@@ -15,20 +15,20 @@ using System.Reflection;
 LogBuilder.Configuration(LogConfigXmlReader.Load($"{AppContext.BaseDirectory}DignusLog.config"));
 LogBuilder.Build();
 
-var module = new TelnetCommandRunner();
+var module = new LocalCommandRunner();
 
-module.SessionConnected += Module_SessionConnected;
-module.SessionDisconnected += Module_SessionDisconnected;
+//module.SessionConnected += Module_SessionConnected;
+//module.SessionDisconnected += Module_SessionDisconnected;
 
-void Module_SessionDisconnected(IActorRef obj)
-{
-    LogHelper.Info($"Module_SessionDisconnected : {obj.GetHashCode()}");
-}
+//void Module_SessionDisconnected(IActorRef obj)
+//{
+//    LogHelper.Info($"Module_SessionDisconnected : {obj.GetHashCode()}");
+//}
 
-void Module_SessionConnected(IActorRef obj)
-{
-    LogHelper.Info($"Module_SessionConnected : {obj.GetHashCode()}");
-}
+//void Module_SessionConnected(IActorRef obj)
+//{
+//    LogHelper.Info($"Module_SessionConnected : {obj.GetHashCode()}");
+//}
 
 //module.ExitRequested += Module_ExitRequested;
 
@@ -50,7 +50,6 @@ module.AddMiddleware((ref CommandPipelineContext context, ref AsyncPipelineNext<
     }
     if (auth.Execute(context) == false)
     {
-        context.SenderActorRef.Post(new CommandResponseMessage("invalid auth"));
         return Task.CompletedTask;
     }
     return next.InvokeAsync(ref context);
