@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace Dignus.Commands.Commands
 {
-    [GlobalCommand("alias")]
+    [SystemCommand("alias")]
     internal class AliasCommand(AliasTable aliasTable) : ICommand
     {
         public Task InvokeAsync(string[] args, IActorRef sender, CancellationToken cancellationToken)
@@ -20,10 +20,8 @@ namespace Dignus.Commands.Commands
                 {
                     sb.AppendLine($"{item.Alias} : {item.CommandName}");
                 }
-                sender.Post(new CommandResponseMessage()
-                {
-                    Content = sb.ToString()
-                });
+                sender.Post(new CommandResponseMessage(sb.ToString()));
+
                 return Task.CompletedTask;
             }
             else

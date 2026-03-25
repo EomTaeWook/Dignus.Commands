@@ -9,7 +9,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageProjectUrl>https://github.com/EomTaeWook/Dignus.Commands</PackageProjectUrl>
     <RepositoryUrl>https://github.com/EomTaeWook/Dignus.Commands</RepositoryUrl>
-    <Version>1.0.8</Version>
+    <Version>1.0.9</Version>
     <PackageIcon>Icon.jpg</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>

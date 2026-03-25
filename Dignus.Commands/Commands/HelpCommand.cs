@@ -8,9 +8,9 @@ using System.Text;
 
 namespace Dignus.Commands.Commands
 {
-    [GlobalCommand("h")]
-    [GlobalCommand("?")]
-    [GlobalCommand("help")]
+    [SystemCommand("h")]
+    [SystemCommand("?")]
+    [SystemCommand("help")]
     internal class HelpCommand(AliasTable aliasTable,
         CommandTable commandTable,
         ServiceContainer _serviceContainer) : IPathCommand
@@ -49,11 +49,8 @@ namespace Dignus.Commands.Commands
                 }
                 sb.AppendLine($"{displayName} : {command.Print()}");
             }
-                        
-            sender.Post(new CommandResponseMessage()
-            {
-                Content = sb.ToString()
-            });
+
+            sender.Post(new CommandResponseMessage(sb.ToString()));
 
             return Task.CompletedTask;
         }

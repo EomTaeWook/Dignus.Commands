@@ -1,26 +1,40 @@
 ﻿using Dignus.Actor.Abstractions;
 using Dignus.Actor.Core;
 using Dignus.Actor.Network;
+using Dignus.Commands.Internals.ActorStates;
+using Dignus.Commands.Internals.Interfaces;
 using Dignus.Commands.Messages;
-using Dignus.Commands.Network.Codecs;
 using Dignus.Commands.Network.Messages;
 using System.Text;
 
 namespace Dignus.Commands.Internals.Actors
 {
     internal class TelnetClientActor(IActorRef commandExecutionActorRef,
-        string moduleName) : SessionActorBase
+        string moduleName) : SessionActorBase, IStateTransitionContext
     {
+        private IStateBase _currentState;
+
         private string _currentPath = "/";
-        private readonly TelnetConsoleInputDecoder _consoleInput = new();
-        private readonly List<string> _commandHistory = [];
-        private int _historyIndex = -1;
+        public void ChangeState(IStateBase newState)
+        {
+            if(_currentState != null)
+            {
+                _currentState.OnExit();
+            }
+
+            _currentState = newState;
+
+            _currentState.OnEnter();
+        }
         protected override ValueTask OnReceive(IActorMessage message, IActorRef sender)
         {
-            if(message is IncomingNetworkMessage commandLineMessage)
+            if(message is IncomingNetworkMessage)
             {
-                HandleInput(commandLineMessage);
-                return ValueTask.CompletedTask;
+                return _currentState.OnHandleMessage(message, sender);
+            }
+            else if(message is StartNegotiationMessage)
+            {
+                ChangeToNegotiationState();
             }
             else if(message is CancelCommandMessage)
             {
@@ -28,13 +42,19 @@ namespace Dignus.Commands.Internals.Actors
             }
             else if(message is CommandResponseMessage commandResponse)
             {
-                var bytes = Encoding.UTF8.GetBytes($"{commandResponse.Content}\r\n");
-
-                NetworkSession.SendAsync(bytes);
+                NetworkSession.SendAsync(commandResponse);
             }
-            else if(message is OutgoingMessage outgoingNetworkMessage)
+            else if(message is CommandLineInputMessage commandLineInput)
             {
-                NetworkSession.SendAsync(outgoingNetworkMessage);
+                commandExecutionActorRef.Post(new RunCommandRequestMessage(_currentPath, commandLineInput.CommandLine, Self), Self);
+            }
+            else if (message is OutgoingByteMessage outgoingByteMessage)
+            {
+                NetworkSession.SendAsync(outgoingByteMessage.Bytes);
+            }
+            else if(message is ConfirmCommandExitMessage)
+            {
+                NetworkSession.Kill();
             }
             else if (message is StartPromptMessage)
             {
@@ -49,117 +69,35 @@ namespace Dignus.Commands.Internals.Actors
         }
         private void ShowPrompt() 
         {
-            var bytes = Encoding.UTF8.GetBytes(GetPromptText());
-            NetworkSession.SendAsync(bytes);
+            NetworkSession.SendAsync(new CommandResponseMessage(GetPromptText(), false));
         }
         private void HandleDirectoryChanged(ChangeDirectoryRequestMessage changeDirectoryRequest)
         {
             var result = CommandPathResolver.Resolve(_currentPath, changeDirectoryRequest.Path);
             _currentPath = result;
         }
-        private void HandleInput(IncomingNetworkMessage message)
-        {
-            _consoleInput.DecodeIncomingNetworkBytes(message.Bytes,
-                HandleValidCharacter,
-                HandleTerminalInputKey);
-        }
-        private void HandleTerminalInputKey(TerminalInputKey inputKey)
-        {
-            if (_commandHistory.Count == 0)
-            {
-                return;
-            }
 
-            if (inputKey == TerminalInputKey.ArrowUp)
-            {
-                if (_historyIndex < _commandHistory.Count - 1)
-                {
-                    _historyIndex++;
-                }
-
-                ReplaceCurrentInputLine(_commandHistory[_historyIndex]);
-                return;
-            }
-
-            if (inputKey == TerminalInputKey.ArrowDown)
-            {
-                if (_historyIndex > 0)
-                {
-                    _historyIndex--;
-                    ReplaceCurrentInputLine(_commandHistory[_historyIndex]);
-                    return;
-                }
-
-                _historyIndex = -1;
-                ReplaceCurrentInputLine(string.Empty);
-            }
-        }
-        private void ReplaceCurrentInputLine(string commandLine)
-        {
-            int previousInputLength = _consoleInput.CurrentBufferLength;
-            _consoleInput.ReplaceBuffer(commandLine);
-
-            var promptText = GetPromptText();
-
-            var stringBuilder = new StringBuilder();
-            stringBuilder.Append('\r');
-            stringBuilder.Append(' ', promptText.Length + previousInputLength);
-            stringBuilder.Append('\r');
-            stringBuilder.Append(promptText);
-            stringBuilder.Append(commandLine);
-
-            NetworkSession.SendAsync(Encoding.UTF8.GetBytes(stringBuilder.ToString()));
-        }
         private string GetPromptText()
         {
             return $"{moduleName}:{_currentPath} > ";
         }
-        private void HandleValidCharacter(char character)
+
+        public void ChangeToNegotiationState()
         {
-            ControlCharacter controlCharacter = (ControlCharacter)character;
+            VerifyContext();
 
-            switch (controlCharacter)
-            {
-                case ControlCharacter.Backspace:
-                case ControlCharacter.Delete:
-                    {
-                        if (_consoleInput.IsBufferEmpty == false)
-                       {
-                            _consoleInput.RemoveLastCharacterFromBuffer();
-                            NetworkSession.SendAsync(TelnetControlSequence.BackspaceEraseSequence);
-                        }
-                        return;
-                    }
+            ChangeState(new NegotiationState(this));
+        }
 
-                case ControlCharacter.CarriageReturn:
-                    {
-                        string commandLine = _consoleInput.GetFinalCommandAndClearBuffer();
+        public void ChangeToTerminalInputState()
+        {
+            VerifyContext();
 
-                        if (string.IsNullOrWhiteSpace(commandLine) == true)
-                        {
-                            return;
-                        }
-
-                        Post(Self, new CommandResponseMessage());
-                        commandExecutionActorRef.Post(new RunCommandMessage(_currentPath, commandLine, Self), Self);
-                        _commandHistory.Add(commandLine);
-                        _historyIndex = _commandHistory.Count - 1;
-                        return;
-                    }
-
-
-                case ControlCharacter.LineFeed:
-                    return;
-
-                case ControlCharacter.EndOfText:
-                    {
-                        commandExecutionActorRef.Post(new CancelCommandMessage(), Self);
-                        return;
-                    }
-            }
-
-            _consoleInput.AppendCharacterToBuffer(character);
-            NetworkSession.SendAsync(Encoding.UTF8.GetBytes(character.ToString()));
+            ChangeState(new TerminalInputState(this, GetPromptText()));
+        }
+        public void Post(IActorMessage message)
+        {
+            Self.Post(message, Self);
         }
     }
 }

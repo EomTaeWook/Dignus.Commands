@@ -50,10 +50,7 @@ module.AddMiddleware((ref CommandPipelineContext context, ref AsyncPipelineNext<
     }
     if (auth.Execute(context) == false)
     {
-        context.SenderActorRef.Post(new CommandResponseMessage()
-        {
-            Content = "invalid auth"
-        });
+        context.SenderActorRef.Post(new CommandResponseMessage("invalid auth"));
         return Task.CompletedTask;
     }
     return next.InvokeAsync(ref context);
@@ -73,18 +70,12 @@ async Task TestAsync(string[] args, IActorRef sender, CancellationToken cancella
     var count = 0;
     while (cancellationToken.IsCancellationRequested == false)
     {
-        sender.Post(new CommandResponseMessage()
-        {
-            Content = $"sleep : {count++}"
-        });
+        sender.Post(new CommandResponseMessage($"sleep : {count++}"));
 
         await Task.Delay(2000, cancellationToken);
     }
 
-    sender.Post(new CommandResponseMessage()
-    {
-        Content = $"end sleep : {count++}"
-    });
+    sender.Post(new CommandResponseMessage($"end sleep : {count++}"));
 }
 
 [Auth]

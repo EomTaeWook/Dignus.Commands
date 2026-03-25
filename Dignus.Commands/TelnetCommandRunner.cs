@@ -59,22 +59,7 @@ namespace Dignus.Commands
 
         public void OnAccepted(INetworkSessionRef connectedActorRef)
         {
-            // 텔넷 협상을 위한 Interpret As Command (IAC) 바이트 정의
-            byte interpretAsCommand = 0xFF; // IAC
-            byte willCommand = 0xFB;        // WILL
-            byte echoOption = 0x01;         // ECHO
-            byte suppressGoAheadOption = 0x03; // SUPPRESS GO AHEAD
-
-            byte[] telnetNegotiation =
-            [
-                interpretAsCommand, willCommand, echoOption,
-                interpretAsCommand, willCommand, suppressGoAheadOption
-            ];
-
-            connectedActorRef.SendAsync(telnetNegotiation);            
-
-            connectedActorRef.Post(new StartPromptMessage());
-
+            connectedActorRef.Post(new StartNegotiationMessage());
             SessionConnected?.Invoke(connectedActorRef);
         }
 

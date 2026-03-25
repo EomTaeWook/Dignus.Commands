@@ -1,6 +1,6 @@
-﻿using Dignus.Actor.Abstractions;
+﻿using Dignus.Actor.Network.Messages;
 
 namespace Dignus.Commands.Messages
 {
-    public readonly record struct CommandResponseMessage(string Content) : IActorMessage;
+    public record CommandResponseMessage(string Content, bool AppendNewline = true) : INetworkActorMessage;
 }
