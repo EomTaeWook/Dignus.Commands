@@ -74,7 +74,7 @@ namespace Dignus.Commands.Internals
         public void AddCommand(string commandPath, string commandName, string desc, Func<string[], IActorRef, CancellationToken, Task> action)
         {
             var actionCommand = new ActionCommand(action, desc);
-            AddCommandInternal(commandPath, commandName, new ActionCommand(action, desc), false);
+            AddCommandInternal(commandPath, commandName, actionCommand, false);
         }
 
         public void AddCommand<T>(string commandPath, string commandName, T command) where T : class, IPathCommand

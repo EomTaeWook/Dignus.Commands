@@ -49,7 +49,7 @@ namespace Dignus.Commands.Internals.Actors
             Task.Run(() => 
             {
                 var line = Console.ReadLine();
-                var message = new RunCommandMessage(_currentPath, line, Self);
+                var message = new RunCommandRequestMessage(_currentPath, line, Self);
                 commandExecutionActorRef.Post(message, Self);
             });
         }

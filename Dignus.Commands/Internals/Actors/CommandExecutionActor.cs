@@ -3,7 +3,6 @@ using Dignus.Actor.Core;
 using Dignus.Collections;
 using Dignus.Commands.Interfaces;
 using Dignus.Commands.Messages;
-using Dignus.Commands.Network.Messages;
 using Dignus.Commands.Pipeline;
 using Dignus.DependencyInjection;
 using Dignus.Framework.Pipeline;
@@ -15,10 +14,10 @@ namespace Dignus.Commands.Internals.Actors
         ) : ActorBase
     {
         private CancellationTokenSource _cancellationToken;
-        private readonly ArrayQueue<RunCommandMessage> _commandMessages = [];
+        private readonly ArrayQueue<RunCommandRequestMessage> _commandMessages = [];
         protected override async ValueTask OnReceive(IActorMessage message, IActorRef sender)
         {
-            if (message is RunCommandMessage runCommand)
+            if (message is RunCommandRequestMessage runCommand)
             {
                 await HandleMessage(runCommand);
             }
@@ -26,20 +25,19 @@ namespace Dignus.Commands.Internals.Actors
             {
                 await HandleMessage(cancelCommand, sender);
             }
-            else if(message is CompleteCommandMessage completeCommand)
+            else if (message is CommandCompletedMessage completeCommand)
             {
                 await HandleMessage(completeCommand);
             }
         }
-        private async ValueTask HandleMessage(CompleteCommandMessage completeCommandMessage)
+        private async ValueTask HandleMessage(CommandCompletedMessage commandCompletedMessage)
         {
-            completeCommandMessage.PromptTargetActorRef.Post(new StartPromptMessage(), Self);
-
             var expiredTokenSource = Interlocked.Exchange(ref _cancellationToken, null);
             if (expiredTokenSource != null)
             {
                 expiredTokenSource.Dispose();
             }
+            commandCompletedMessage.PromptTarget.Post(new StartPromptMessage(), Self);
 
             if (_commandMessages.TryRead(out var item))
             {
@@ -59,9 +57,9 @@ namespace Dignus.Commands.Internals.Actors
             return Task.CompletedTask;
         }
 
-        private async ValueTask HandleMessage(RunCommandMessage runCommandMessage)
+        private async ValueTask HandleMessage(RunCommandRequestMessage message)
         {
-            _commandMessages.Add(runCommandMessage);
+            _commandMessages.Add(message);
 
             if (_cancellationToken != null)
             {
@@ -80,6 +78,7 @@ namespace Dignus.Commands.Internals.Actors
             {
                 return ValueTask.CompletedTask;
             }
+
             var cancellationTokenSource = new CancellationTokenSource();
 
             if (Interlocked.CompareExchange(ref _cancellationToken, cancellationTokenSource, null) != null)
@@ -91,7 +90,7 @@ namespace Dignus.Commands.Internals.Actors
             var splits = commandLine.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             if(splits.Length == 0)
             {
-                Post(Self, new CompleteCommandMessage(sender));
+                sender.Post(new CommandCompletedMessage(), Self);
                 return ValueTask.CompletedTask;
             }
 
@@ -110,7 +109,7 @@ namespace Dignus.Commands.Internals.Actors
         {
             if(string.IsNullOrWhiteSpace(commandName))
             {
-                Post(Self, new CompleteCommandMessage(sender));
+                Post(Self, new CommandCompletedMessage(sender));
                 return;
             }
 
@@ -132,12 +131,10 @@ namespace Dignus.Commands.Internals.Actors
 
             if (resolvedCommandName == null)
             {
-                sender.Post(new CommandResponseMessage()
-                {
-                    Content = $"Command `{commandName}` was not found. Please type 'help' to see the available commands."
-                }, Self);
+                var error = $"Command `{commandName}` was not found. Please type 'help' to see the available commands.";
+                sender.Post(new CommandResponseMessage(error, true), Self);
 
-                Post(Self, new CompleteCommandMessage(sender));
+                Post(Self, new CommandCompletedMessage(sender));
                 return;
             }
 
@@ -160,11 +157,11 @@ namespace Dignus.Commands.Internals.Actors
             }
             catch(Exception ex)
             {
-                sender.Post(new OutgoingMessage(ex.Message, true), Self);
+                sender.Post(new CommandResponseMessage(ex.Message, true), Self);
             }
             finally
             {
-                Post(Self, new CompleteCommandMessage(sender));
+                Post(Self, new CommandCompletedMessage(sender));
             }
         }
     }

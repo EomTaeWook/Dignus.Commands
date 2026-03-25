@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Dignus.Commands.Commands
 {
-    [GlobalCommand("unalias")]
+    [SystemCommand("unalias")]
     internal class UnAliasCommand(AliasTable aliasTable) : ICommand
     {
         public Task InvokeAsync(string[] args, IActorRef sender, CancellationToken cancellationToken)

@@ -4,7 +4,7 @@ using Dignus.Commands.Interfaces;
 
 namespace Dignus.Commands.Commands
 {
-    [GlobalCommand("clr")]
+    [SystemCommand("clr")]
     internal class ConsoleClearCommand : ICommand
     {
         public Task InvokeAsync(string[] args, IActorRef sender, CancellationToken cancellationToken)

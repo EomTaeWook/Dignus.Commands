@@ -1,6 +1,7 @@
 ﻿using Dignus.Actor.Network.Codec;
 using Dignus.Actor.Network.Messages;
 using Dignus.Collections;
+using Dignus.Commands.Messages;
 using Dignus.Commands.Network.Messages;
 using Dignus.Sockets.Interfaces;
 using System.Text;
@@ -19,7 +20,7 @@ namespace Dignus.Commands.Network.Codecs
 
         public ArraySegment<byte> MakeSendBuffer(INetworkActorMessage message)
         {
-            if (message is not OutgoingMessage networkMessage)
+            if (message is not CommandResponseMessage networkMessage)
             {
                 return null;
             }

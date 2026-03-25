@@ -5,7 +5,7 @@ using Dignus.Commands.Messages;
 
 namespace Dignus.Commands.Commands
 {
-    [GlobalCommand("cd")]
+    [SystemCommand("cd")]
     internal class ChangeDirectoryCommand : ICommand
     {
         public Task InvokeAsync(string[] args, IActorRef sender, CancellationToken cancellationToken)
