@@ -55,7 +55,7 @@ namespace Dignus.Commands.Commands
 
         public string Print()
         {
-            return $"명령어의 별칭을 설정합니다. alias sp start process";
+            return "Sets a command alias. Example: alias sp start process";
         }
     }
 }

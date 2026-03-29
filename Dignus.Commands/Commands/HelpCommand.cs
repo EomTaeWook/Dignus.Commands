@@ -4,6 +4,7 @@ using Dignus.Commands.Interfaces;
 using Dignus.Commands.Internals;
 using Dignus.Commands.Messages;
 using Dignus.DependencyInjection;
+using System.Reflection;
 using System.Text;
 
 namespace Dignus.Commands.Commands
@@ -15,27 +16,43 @@ namespace Dignus.Commands.Commands
         CommandTable commandTable,
         ServiceContainer _serviceContainer) : IPathCommand
     {
+        private const string Newline = "\r\n";
         public Task InvokeAsync(string[] args, string currentPath, IActorRef sender, CancellationToken cancellationToken)
         {
-            var sb = new StringBuilder();
+            var displayPath = currentPath;
 
+            if(string.IsNullOrWhiteSpace(displayPath))
+            {
+                displayPath = "/";
+            }
+            var sb = new StringBuilder();
+            sb.Append("=== Global Commands ===");
+            sb.Append(Newline);
             foreach (var commandName in commandTable.GetGlobalCommandList())
             {
                 var command = (IPathCommand)_serviceContainer.GetService(commandName);
-                sb.AppendLine($"{commandName} : {command.Print()}");
+
+                if(command.GetType().GetCustomAttributes< SystemCommandAttribute>().Any())
+                {
+                    continue;
+                }
+
+                sb.Append($"{commandName} : {command.Print()}");
+                sb.Append(Newline);
             }
 
             if (aliasTable.Alias.Count > 0)
             {
-                sb.AppendLine();
+                sb.Append($"{Newline}=== Aliases ===");
+                foreach (var item in aliasTable.GetDatas())
+                {
+                    sb.Append($"{item.Alias} : {item.CommandName}");
+                    sb.Append(Newline);
+                }
             }
 
-            foreach (var item in aliasTable.GetDatas())
-            {
-                sb.AppendLine($"{item.Alias} : {item.CommandName}");
-            }
-
-            sb.AppendLine();
+            sb.Append($"{Newline}=== Directory Commands (Path: {displayPath}) ===");
+            sb.Append(Newline);
 
             foreach (var commandName in commandTable.GetCommandListByPath(currentPath))
             {
@@ -47,7 +64,9 @@ namespace Dignus.Commands.Commands
                 {
                     displayName = commandName[(currentPath.Length + 1)..];
                 }
-                sb.AppendLine($"{displayName} : {command.Print()}");
+
+                sb.Append($"{displayName} : {command.Print()}");
+                sb.Append(Newline);
             }
 
             sender.Post(new CommandResponseMessage(sb.ToString()));
@@ -57,7 +76,7 @@ namespace Dignus.Commands.Commands
 
         public string Print()
         {
-            return "현재 등록된 명령어를 보여줍니다.";
+            return "Displays the available commands.";
         }
     }
 }

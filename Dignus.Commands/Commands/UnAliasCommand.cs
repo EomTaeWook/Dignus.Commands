@@ -23,7 +23,7 @@ namespace Dignus.Commands.Commands
 
         public string Print()
         {
-            return $"명령어의 별칭을 삭제합니다.";
+            return "Removes the specified command aliases.";
         }
     }
 }

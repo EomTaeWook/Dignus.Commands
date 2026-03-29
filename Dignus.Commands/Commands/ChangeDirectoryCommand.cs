@@ -22,7 +22,7 @@ namespace Dignus.Commands.Commands
 
         public string Print()
         {
-            return "현재 명령 경로를 변경합니다";
+            return "Changes the current command path.";
         }
     }
 }
