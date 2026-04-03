@@ -9,7 +9,7 @@ namespace Dignus.Commands.Internals
         private static readonly ActorSystem _actorSystem;
         static CommandActorSystem()
         {
-            _actorSystem = new ActorSystem(Environment.ProcessorCount);
+            _actorSystem = new ActorSystem();
         }        
     }
 }
