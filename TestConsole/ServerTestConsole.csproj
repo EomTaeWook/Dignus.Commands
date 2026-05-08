@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Dignus.Log" Version="1.0.9" />
+    <PackageReference Include="Dignus.Log" Version="1.0.11" />
   </ItemGroup>
 
   <ItemGroup>
