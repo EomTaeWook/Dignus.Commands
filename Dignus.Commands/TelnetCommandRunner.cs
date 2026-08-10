@@ -83,7 +83,8 @@ namespace Dignus.Commands
             });
 
             return new TelnetClientActor(executionActorRef,
-                GetModuleName());
+                GetModuleName(),
+                _serviceProvider.GetService<CommandAutoCompleter>());
         }
     }
 }

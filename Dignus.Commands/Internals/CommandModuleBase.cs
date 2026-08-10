@@ -58,6 +58,7 @@ namespace Dignus.Commands.Internals
             {
                 _serviceContainer.RegisterType(new AliasTable([]));
             }
+            _serviceContainer.RegisterType<CommandAutoCompleter, CommandAutoCompleter>();
             _serviceContainer.RegisterType<CommandExecutionActor, CommandExecutionActor>();
             _serviceContainer.RegisterType(_serviceContainer);
             return _serviceContainer.Build();

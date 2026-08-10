@@ -10,7 +10,8 @@ using System.Text;
 namespace Dignus.Commands.Internals.Actors
 {
     internal class TelnetClientActor(IActorRef commandExecutionActorRef,
-        string moduleName) : SessionActorBase, IStateTransitionContext
+        string moduleName,
+        CommandAutoCompleter commandAutoCompleter) : SessionActorBase, IStateTransitionContext
     {
         private IStateBase _currentState;
 
@@ -93,7 +94,7 @@ namespace Dignus.Commands.Internals.Actors
         {
             VerifyContext();
 
-            ChangeState(new TerminalInputState(this, GetPromptText()));
+            ChangeState(new TerminalInputState(this, GetPromptText(), _currentPath, commandAutoCompleter));
         }
         public void Post(IActorMessage message)
         {

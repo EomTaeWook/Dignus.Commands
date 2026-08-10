@@ -9,7 +9,9 @@ using System.Text;
 namespace Dignus.Commands.Internals.ActorStates
 {
     internal class TerminalInputState(IStateTransitionContext context,
-        string promptText) : IStateBase
+        string promptText,
+        string currentPath,
+        CommandAutoCompleter commandAutoCompleter) : IStateBase
     {
         private readonly List<string> _commandHistory = [];
         private int _historyIndex = -1;
@@ -73,6 +75,10 @@ namespace Dignus.Commands.Internals.ActorStates
                 case ControlCharacter.LineFeed:
                     return;
 
+                case ControlCharacter.HorizontalTab:
+                    CompleteInput();
+                    return;
+
                 case ControlCharacter.EndOfText:
                     {
                         context.Post(new CancelCommandMessage());
@@ -112,6 +118,27 @@ namespace Dignus.Commands.Internals.ActorStates
 
                 _historyIndex = -1;
                 ReplaceCurrentInputLine(string.Empty);
+            }
+        }
+        private void CompleteInput()
+        {
+            string input = _consoleInput.GetCurrentBuffer();
+            IReadOnlyList<string> matches = commandAutoCompleter.GetMatches(currentPath, input);
+            if (matches.Count == 0)
+            {
+                return;
+            }
+
+            string completion = matches.Count == 1 ? matches[0] : CommandAutoCompleter.GetCommonPrefix(matches);
+            if (completion.Length > input.Length)
+            {
+                ReplaceCurrentInputLine(completion);
+                return;
+            }
+
+            if (matches.Count > 1)
+            {
+                context.Post(new CommandResponseMessage($"\r\n{string.Join("  ", matches)}\r\n{promptText}{input}", false));
             }
         }
         private void HandleInput(IncomingNetworkMessage message)

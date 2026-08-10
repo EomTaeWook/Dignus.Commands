@@ -20,6 +20,7 @@ Lightweight command execution system for **local console** and **telnet remote c
 - Middleware pipeline support
 - Local console command runner
 - Telnet remote command runner
+- Tab command auto-completion
 
 ### Korean
 - Attribute 기반 커맨드 등록
@@ -29,6 +30,7 @@ Lightweight command execution system for **local console** and **telnet remote c
 - 미들웨어 파이프라인 지원
 - 로컬 콘솔 실행 지원
 - 텔넷 기반 원격 명령 실행
+- Tab 키 명령 자동완성
 
 ---
 
@@ -52,6 +54,12 @@ module.Run();
 Run commands directly from the local console.
 
 로컬 콘솔에서 직접 명령을 입력받아 실행합니다.
+
+Type part of a command and press `Tab` to complete it. When several commands match,
+`Tab` completes their shared prefix; press it again to view the candidates.
+
+명령 일부를 입력한 뒤 `Tab`을 누르면 자동완성됩니다. 여러 명령이 일치하면 공통 접두어까지
+완성하고, 한 번 더 누르면 후보를 표시합니다.
 
 ```csharp
 using Dignus.Commands;

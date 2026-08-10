@@ -117,6 +117,11 @@ namespace Dignus.Commands.Network.Codecs
             _commandInputBuffer.Append(text);
         }
 
+        public string GetCurrentBuffer()
+        {
+            return _commandInputBuffer.ToString();
+        }
+
         public string GetFinalCommandAndClearBuffer()
         {
             string finalCommand = _commandInputBuffer.ToString();

@@ -3,6 +3,7 @@ using Dignus.Commands.Internals;
 using Dignus.Commands.Internals.Actors;
 using Dignus.Commands.Messages;
 using Dignus.Commands.Pipeline;
+using Dignus.DependencyInjection.Extensions;
 using Dignus.Framework.Pipeline;
 using Dignus.Framework.Pipeline.Interfaces;
 
@@ -26,7 +27,7 @@ namespace Dignus.Commands
             _serviceContainer.RegisterType(_commandPipeline);
             _commandPipeline.Use(new CommandExecutionMiddleware());
 
-            BuildInternal();
+            var serviceProvider = BuildInternal();
 
             var executionActorRef = CommandActorSystem.Instance.Spawn(() =>
             {
@@ -37,7 +38,8 @@ namespace Dignus.Commands
 
             _localConsoleActorRef = CommandActorSystem.Instance.Spawn(() =>
             {
-                var actor = new LocalConsoleActor(executionActorRef);
+                var actor = new LocalConsoleActor(executionActorRef,
+                    serviceProvider.GetService<CommandAutoCompleter>());
 
                 actor.Initialize(GetModuleName(), ExitRequested);
 
