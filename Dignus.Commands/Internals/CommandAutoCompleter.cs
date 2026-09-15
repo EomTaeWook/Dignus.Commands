@@ -4,7 +4,17 @@ namespace Dignus.Commands.Internals
     {
         public IReadOnlyList<string> GetMatches(string currentPath, string input)
         {
-            if (string.IsNullOrWhiteSpace(input) || input.Any(char.IsWhiteSpace))
+            if (input == null)
+            {
+                return [];
+            }
+
+            if (TryGetChangeDirectoryArgument(input, out int argumentStart))
+            {
+                return GetDirectoryMatches(currentPath, input, argumentStart);
+            }
+
+            if (input.Any(char.IsWhiteSpace))
             {
                 return [];
             }
@@ -17,11 +27,6 @@ namespace Dignus.Commands.Internals
             {
                 if (string.IsNullOrEmpty(pathPrefix))
                 {
-                    if (command.Contains('/'))
-                    {
-                        continue;
-                    }
-
                     AddIfMatches(command);
                     continue;
                 }
@@ -29,21 +34,21 @@ namespace Dignus.Commands.Internals
                 if (command.StartsWith(pathPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     string name = command[pathPrefix.Length..];
-                    if (name.Contains('/') == false)
-                    {
-                        AddIfMatches(name);
-                    }
+                    AddIfMatches(name);
                 }
             }
 
-            foreach (string command in commandTable.GetGlobalCommandList())
+            if (string.IsNullOrEmpty(normalizedPath))
             {
-                AddIfMatches(command);
-            }
+                foreach (string command in commandTable.GetGlobalCommandList())
+                {
+                    AddIfMatches(command);
+                }
 
-            foreach (var alias in aliasTable.GetDatas())
-            {
-                AddIfMatches(alias.Alias);
+                foreach (var alias in aliasTable.GetDatas())
+                {
+                    AddIfMatches(alias.Alias);
+                }
             }
 
             return [.. candidates];
@@ -55,6 +60,96 @@ namespace Dignus.Commands.Internals
                     candidates.Add(candidate);
                 }
             }
+        }
+
+        private IReadOnlyList<string> GetDirectoryMatches(string currentPath, string input, int argumentStart)
+        {
+            string pathInput = input[argumentStart..].Replace('\\', '/');
+            if (pathInput.Any(char.IsWhiteSpace))
+            {
+                return [];
+            }
+
+            var directories = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string command in commandTable.GetCommandList())
+            {
+                string normalizedCommand = command.Trim('/');
+                int separatorIndex = normalizedCommand.LastIndexOf('/');
+                if (separatorIndex < 0)
+                {
+                    continue;
+                }
+
+                string directory = normalizedCommand[..separatorIndex];
+                while (string.IsNullOrEmpty(directory) == false)
+                {
+                    directories.Add(directory);
+
+                    separatorIndex = directory.LastIndexOf('/');
+                    if (separatorIndex < 0)
+                    {
+                        break;
+                    }
+
+                    directory = directory[..separatorIndex];
+                }
+            }
+
+            var candidates = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            string normalizedPath = currentPath.Trim('/');
+            string currentPathPrefix = string.IsNullOrEmpty(normalizedPath) ? string.Empty : normalizedPath + "/";
+            bool isAbsolutePath = pathInput.StartsWith('/');
+            string inputPrefix = input[..argumentStart];
+
+            foreach (string directory in directories)
+            {
+                string candidatePath;
+                if (isAbsolutePath)
+                {
+                    candidatePath = "/" + directory;
+                }
+                else if (string.IsNullOrEmpty(currentPathPrefix))
+                {
+                    candidatePath = directory;
+                }
+                else if (directory.StartsWith(currentPathPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    candidatePath = directory[currentPathPrefix.Length..];
+                }
+                else
+                {
+                    continue;
+                }
+
+                string candidate = inputPrefix + candidatePath;
+                if (candidate.StartsWith(input, StringComparison.OrdinalIgnoreCase))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+
+            return [.. candidates];
+        }
+
+        private static bool TryGetChangeDirectoryArgument(string input, out int argumentStart)
+        {
+            argumentStart = 0;
+            while (argumentStart < input.Length && char.IsWhiteSpace(input[argumentStart]) == false)
+            {
+                argumentStart++;
+            }
+
+            if (argumentStart == input.Length || input[..argumentStart].Equals("cd", StringComparison.OrdinalIgnoreCase) == false)
+            {
+                return false;
+            }
+
+            while (argumentStart < input.Length && char.IsWhiteSpace(input[argumentStart]))
+            {
+                argumentStart++;
+            }
+
+            return true;
         }
 
         public static string GetCommonPrefix(IReadOnlyList<string> matches)

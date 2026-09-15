@@ -39,7 +39,8 @@ var module = new LocalCommandRunner();
 
 module.AddCommand<Close>();
 
-module.AddCommand("process","l", "loop desc", TestAsync);
+module.AddCommand("debug/process","l", "loop desc", TestAsync);
+module.AddCommand("debug/process", "l2", "loop desc", TestAsync);
 
 module.AddMiddleware((ref CommandPipelineContext context, ref AsyncPipelineNext<CommandPipelineContext> next) =>
 {
