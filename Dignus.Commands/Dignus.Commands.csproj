@@ -15,7 +15,6 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>C# command execution framework for local consoles and Telnet remote control, with asynchronous commands, middleware and tab completion.</Description>
-    <PackageTags>command;console;cli;telnet;server;async;middleware;dotnet</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
