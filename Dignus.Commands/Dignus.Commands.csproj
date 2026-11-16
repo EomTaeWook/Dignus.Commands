@@ -8,19 +8,18 @@
     <Authors>EomTaeWook</Authors>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageProjectUrl>https://github.com/EomTaeWook/Dignus.Commands</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/EomTaeWook/Dignus.Commands</RepositoryUrl>
     <Version>1.1.4</Version>
-    <PackageIcon>Icon.jpg</PackageIcon>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>C# command execution framework for local consoles and Telnet remote control, with asynchronous commands, middleware and tab completion.</Description>
+    <PackageTags>command;console;cli;telnet;server;async;middleware;dotnet</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\publish\Icon.jpg">
+    <None Include="..\publish\Icon.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
