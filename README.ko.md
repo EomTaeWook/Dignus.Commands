@@ -33,7 +33,7 @@ ICommand, 델리게이트 등록, Telnet, 미들웨어, 취소와 경로 기반 
 
 ## 문서
 
-- [명령 API와 예제 · 한영](docs/Usage.md)
+- [명령 API와 예제](docs/Usage.ko.md)
 
 ## 라이선스
 
